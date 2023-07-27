@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: User Registration API Plugin
+Plugin Name: User Login & Registration API Plugin
 Description: A custom plugin for user registration using the REST API.
 Version: 1.0
 Author: Govind Kewat
@@ -113,22 +113,21 @@ function generate_username_from_email($email) {
   return $username;
 }
 
-
 function wc_rest_user_login_endpoint_handler($request = null) {
   $response = array();
   $parameters = $request->get_json_params();
-  $email_or_username = sanitize_text_field($parameters['email_or_username']);
-  $password = sanitize_text_field($parameters['password']);
+  $email_or_username = isset($parameters['email_or_username']) ? $parameters['email_or_username'] : '';
+  $password = isset($parameters['password']) ? $parameters['password'] : '';
 
   $error = new WP_Error();
 
   if (empty($email_or_username)) {
-    $error->add(400, __("Email or username field 'email_or_username' is required.", 'wp-rest-user'), array('status' => 400));
-    return $error;
+      $error->add(400, __("Email or username field 'email_or_username' is required.", 'wp-rest-user'), array('status' => 400));
+      return $error;
   }
   if (empty($password)) {
-    $error->add(401, __("Password field 'password' is required.", 'wp-rest-user'), array('status' => 400));
-    return $error;
+      $error->add(401, __("Password field 'password' is required.", 'wp-rest-user'), array('status' => 400));
+      return $error;
   }
 
   // Try to log in the user using email
@@ -136,13 +135,13 @@ function wc_rest_user_login_endpoint_handler($request = null) {
 
   // If user not found by email, try using username
   if (!$user) {
-    $user = get_user_by('login', $email_or_username);
+      $user = get_user_by('login', $email_or_username);
   }
 
   if (!$user) {
-    // User not found by email or username
-    $error->add(401, __("Invalid email/username or password.", 'wp-rest-user'), array('status' => 401));
-    return $error;
+      // User not found by email or username
+      $error->add(401, __("Invalid email/username or password.", 'wp-rest-user'), array('status' => 401));
+      return $error;
   }
 
   $username = $user->user_login;
@@ -151,27 +150,54 @@ function wc_rest_user_login_endpoint_handler($request = null) {
 
   // Try to log in the user
   $user = wp_signon(array(
-    'user_login' => $username, // The login is based on the provided username (email)
-    'user_password' => $password,
-    'remember' => true,
+      'user_login' => $username, // The login is based on the provided username (email)
+      'user_password' => $password,
+      'remember' => true,
   ));
 
   if (is_wp_error($user)) {
-    // Login failed
-    $error->add(401, __("Invalid email/username or password.", 'wp-rest-user'), array('status' => 401));
-    return $error;
+      // Login failed
+      $error->add(401, __("Invalid email/username or password.", 'wp-rest-user'), array('status' => 401));
+      return $error;
   } else {
-    // Login successful
-    $response['code'] = 200;
-    $response['message'] = __("User login successful.", 'wp-rest-user');
-    $response['user_id'] = $user->ID;
-    $response['username'] = $user->user_login;
-    $response['first_name'] = $user->first_name;
-    $response['email'] = $user->user_email;
+      // Login successful
+      $user_id = $user->ID;
+      $secret_key = 'your_secret_key'; // Replace with your secret key
+      $token = generate_jwt_token($user_id, $secret_key); // Generate JWT token
+
+      $response['code'] = 200;
+      $response['message'] = __("User login successful.", 'wp-rest-user');
+      $response['user_id'] = $user_id;
+      $response['username'] = $user->user_login;
+      $response['first_name'] = $user->first_name;
+      $response['email'] = $user->user_email;
+      $response['token'] = $token; // Include the token in the response
   }
 
   return new WP_REST_Response($response, 200);
 }
+
+function generate_jwt_token($user_id, $secret_key, $expiration_time = 3600) {
+  $header = [
+      'typ' => 'JWT',
+      'alg' => 'HS256'
+  ];
+
+  $payload = [
+      'user_id' => $user_id,
+      'exp' => time() + $expiration_time
+  ];
+
+  $header_encoded = base64_encode(json_encode($header));
+  $payload_encoded = base64_encode(json_encode($payload));
+
+  $signature = hash_hmac('sha256', $header_encoded . '.' . $payload_encoded, $secret_key, true);
+  $signature_encoded = base64_encode($signature);
+
+  $jwt_token = $header_encoded . '.' . $payload_encoded . '.' . $signature_encoded;
+  return $jwt_token;
+}
+
 
 
 // Add a custom menu in the admin dashboard
@@ -265,51 +291,3 @@ function urap_display_instructions() {
     </div>
     <?php
   }
-
-
-// Callback function to display the menu page content
-function urap_display_instructions() {
-  wp_enqueue_style('urap-styles', plugins_url('urap-styles.css', __FILE__));
-
-  ?>
-  <div class="wrap">
-    <h1>Welcome To User Registration API Plugin</h1>
-    <p class="author">Author: Govind Kewat</p>
-    <p class="support">Support: <a href="mailto:govindkewat019@gmail.com">govindkewat019@gmail.com</a></p>
-    <h3>User Registration API Plugin</h3>
-    <p>Use the following endpoint to register a new user via the REST API:</p>
-    <code>POST <?php echo esc_url_raw(rest_url('wp/v2/users/register')); ?></code>
-    <p>Required Fields:</p>
-    <ul>
-      <li>first_name: The first name of the user.</li>
-      <li>email: The email address of the user.</li>
-      <li>password: The password for the user.</li>
-    </ul>
-    <p><strong>Example Request:</strong></p>
-    <pre><code>
-      POST <?php echo esc_url_raw(rest_url('wp/v2/users/register')); ?>
-
-      Content-Type: application/json
-
-      {
-        "first_name": "John",
-        "email": "john@example.com",
-        "password": "password123"
-      }
-    </code></pre>
-    <p><strong>Example Response:</strong></p>
-    <pre><code>
-      {
-        "code": 200,
-        "message": "User 'john123' Registration was Successful",
-        "user": {
-          "user_id": 123,
-          "username": "john123",
-          "first_name": "John",
-          "email": "john@example.com"
-        }
-      }
-    </code></pre>
-  </div>
-  <?php
-}
