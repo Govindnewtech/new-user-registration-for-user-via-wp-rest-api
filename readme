@@ -1,0 +1,8 @@
+To use the custom plugin you provided for user registration via the WordPress REST API, follow these steps:
+
+Create the Plugin:
+
+Copy the entire custom plugin code you provided into a new file. You can use a text editor to create the file and save it with a .php extension. For example, you can save it as custom-registration-plugin.php.
+
+
+Now, let's add custom CSS styles for the plugin menu page. Save the following CSS in a separate CSS file named urap-styles.css and place it in the plugin's folder:
