@@ -1,0 +1,52 @@
+/* urap-styles.css */
+
+.wrap {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+  }
+  
+  h1, h3 {
+    color: #0073aa;
+  }
+  
+  code {
+    display: block;
+    background-color: #f1f1f1;
+    padding: 10px;
+    font-family: Consolas, Monaco, monospace;
+  }
+  
+  ul {
+    margin-left: 20px;
+  }
+  
+  pre {
+    background-color: #f1f1f1;
+    padding: 10px;
+    font-family: Consolas, Monaco, monospace;
+  }
+  
+  pre code {
+    display: inline;
+    background: none;
+    padding: 0;
+    font-size: 14px;
+  }
+  
+  p.support {
+    font-size: 14px;
+    color: #777;
+  }
+  
+  a {
+    color: #0073aa;
+    text-decoration: none;
+  }
+  
+  a:hover {
+    text-decoration: underline;
+  }
+  
